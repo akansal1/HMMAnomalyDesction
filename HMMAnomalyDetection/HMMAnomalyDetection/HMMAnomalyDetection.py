@@ -184,10 +184,7 @@ class HMMModel:
         self.test_hidden_states = self.model.predict(self.test)
 
     def detectAnomaly(self, true_anomaly=[]):
-
-        if not true_anomaly==[]:
-            self.true_anomaly = true_anomaly
-
+        # detect anomaly by comparing state sequences of train and test data           
         self.estimated_anomaly = []
         for t in range(self.T):
             if self.hidden_states[t] == self.test_hidden_states[t]:
@@ -199,8 +196,30 @@ class HMMModel:
 
         #################
         ## calculate anomaly detection performance (detection rate and precision)
-        
+        if not true_anomaly == []:
+            self.true_anomaly = true_anomaly
+            TP=0
+            TN=0
+            FP=0
+            FN=0
+            for t in range(self.T):
+                if self.estimated_anomaly[t] == 1:
+                    if self.true_anomaly[t] == 1:
+                        TP += 1
+                    else:
+                        FP += 1
+                else:
+                    if self.true_anomaly[t] == 1:
+                        FN += 1
+                    else:
+                        TN += 1
+            # calculate stats
+            recall = float(TP) / float(TP+FN)
+            precision = float(TP) / float(TP+FP)
+            accuracy = float(TP+TN) / float(TP+TN+FP+FN)
 
+            # set dictionary
+            self.stats = dict({'TP':TP,'TN':TN,'FP':FP,'FN':FN,'recall':recall,'precision':precision,'accuracy':accuracy})
 
 
     def drawGraph(self):
@@ -239,7 +258,7 @@ def main():
     ## set model
     hmmmodel = HMMModel()
     hmmmodel.addData(train = data[0,:][:,np.newaxis], test = data[1,:][:,np.newaxis])
-    hmmmodel.setModel(3,'full',1000)
+    hmmmodel.setModel(10,'full',1000)
     
     ## infer HMM parameters and estimate HMM states
     hmmmodel.trainHMM()
@@ -247,6 +266,7 @@ def main():
     
     ## do anomaly detection
     hmmmodel.detectAnomaly(anomaly)
+    print(hmmmodel.stats['recall'],hmmmodel.stats['precision'])
 
     ## drae eresults
     hmmmodel.drawGraph()
