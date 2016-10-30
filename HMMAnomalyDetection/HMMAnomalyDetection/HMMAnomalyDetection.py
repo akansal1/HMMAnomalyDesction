@@ -143,6 +143,9 @@ class HMMModel:
         self.test = []
         self.true_anomaly = []
 
+        ## set output path
+        self.OUTPATH = 'output/'
+
     def addData(self, train=[], test=[]):
         if not train==[]:
             self.train = train
@@ -182,6 +185,9 @@ class HMMModel:
 
     def detectAnomaly(self, true_anomaly=[]):
 
+        if not true_anomaly==[]:
+            self.true_anomaly = true_anomaly
+
         self.estimated_anomaly = []
         for t in range(self.T):
             if self.hidden_states[t] == self.test_hidden_states[t]:
@@ -189,14 +195,18 @@ class HMMModel:
             else:
                 self.estimated_anomaly.append(1)
 
-
         print(self.estimated_anomaly)
+
+        #################
+        ## calculate anomaly detection performance (detection rate and precision)
+        
+
 
 
     def drawGraph(self):
         time = np.array(range(self.T))
 
-        fig, axs = plt.subplots(3, sharex=True, sharey=True)
+        fig, axs = plt.subplots(4, sharex=True, sharey=True)
         colours = cm.rainbow(np.linspace(0, 1, self.model.n_components))
         
         for i, colour in enumerate(colours):
@@ -213,7 +223,8 @@ class HMMModel:
             axs[1].set_title("Test Data HiddenState")
             axs[1].grid(True)
 
-        axs[2].stem(time, self.estimated_anomaly)
+        axs[2].stem(self.estimated_anomaly)
+        axs[3].stem(self.true_anomaly)
 
         plt.show()
 
@@ -228,7 +239,7 @@ def main():
     ## set model
     hmmmodel = HMMModel()
     hmmmodel.addData(train = data[0,:][:,np.newaxis], test = data[1,:][:,np.newaxis])
-    hmmmodel.setModel(4,'full',1000)
+    hmmmodel.setModel(3,'full',1000)
     
     ## infer HMM parameters and estimate HMM states
     hmmmodel.trainHMM()
@@ -239,9 +250,7 @@ def main():
 
     ## drae eresults
     hmmmodel.drawGraph()
-    
-    print(hmmmodel.hidden_states)
-    print(hmmmodel.test_hidden_states)
+
 
 
 
