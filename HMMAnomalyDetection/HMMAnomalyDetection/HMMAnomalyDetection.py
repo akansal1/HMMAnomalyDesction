@@ -16,6 +16,7 @@ except ImportError:
         quotes_historical_yahoo as quotes_historical_yahoo_ochl
     )
 from hmmlearn.hmm import GaussianHMM
+import sys, os
 
 
 def testYahoo():
@@ -143,8 +144,8 @@ class HMMModel:
         self.test = []
         self.true_anomaly = []
 
-        ## set output path
-        self.OUTPATH = 'output/'
+    def setPath(self, path):
+        self.OUTPATH = '%s'%path
 
     def addData(self, train=[], test=[]):
         if not train==[]:
@@ -176,12 +177,16 @@ class HMMModel:
 
         # Predict the optimal sequence of internal hidden state
         self.hidden_states = self.model.predict(self.train)
-
-        print("done")
+        print("Hidden states of TRAIN sequence")
+        print(self.hidden_states)
+        print()
 
     def testHMM(self):
         # Predict the optimal sequence of internal hidden state
         self.test_hidden_states = self.model.predict(self.test)
+        print("Hidden states of TEST sequence")
+        print(self.test_hidden_states)
+        print()
 
     def detectAnomaly(self, true_anomaly=[]):
         # detect anomaly by comparing state sequences of train and test data           
@@ -191,8 +196,9 @@ class HMMModel:
                 self.estimated_anomaly.append(0)
             else:
                 self.estimated_anomaly.append(1)
-
+        print("Anomalies")
         print(self.estimated_anomaly)
+        print()
 
         #################
         ## calculate anomaly detection performance (detection rate and precision)
@@ -220,7 +226,8 @@ class HMMModel:
 
             # set dictionary
             self.stats = dict({'TP':TP,'TN':TN,'FP':FP,'FN':FN,'recall':recall,'precision':precision,'accuracy':accuracy})
-
+            print("recall, precision")
+            print(self.stats['recall'], self.stats['precision'])
 
     def drawGraph(self):
         time = np.array(range(self.T))
@@ -243,9 +250,12 @@ class HMMModel:
             axs[1].grid(True)
 
         axs[2].stem(self.estimated_anomaly)
+        axs[2].set_title("Estimated Anomaly")
         axs[3].stem(self.true_anomaly)
+        axs[3].set_title("True Anomaly")
 
-        plt.show()
+        #plt.show()
+        plt.savefig('%s/result.jpg'%self.OUTPATH)
 
 
 
@@ -258,25 +268,62 @@ def main():
     ## set model
     hmmmodel = HMMModel()
     hmmmodel.addData(train = data[0,:][:,np.newaxis], test = data[1,:][:,np.newaxis])
-    hmmmodel.setModel(10,'full',1000)
-    
+    hmmmodel.setModel(10,'full',10000)
+   
+    sys.stdout = open("tmep.txt","w")
+
     ## infer HMM parameters and estimate HMM states
     hmmmodel.trainHMM()
     hmmmodel.testHMM()
     
     ## do anomaly detection
     hmmmodel.detectAnomaly(anomaly)
-    print(hmmmodel.stats['recall'],hmmmodel.stats['precision'])
+
+    sys.stdout.close()
+    sys.stdout = sys.__stdout__
 
     ## drae eresults
     hmmmodel.drawGraph()
 
 
 
+def modelSelection():
+    ## load data and anomalies
+    data = np.loadtxt('data/data.csv', delimiter=',')
+    anomaly = np.loadtxt('data/anomaly.csv', delimiter=',')
+
+    ns = [3,4,5,6,7,8,9,10]    
+    
+    for n in ns:
+        directory = '%s_components'%(n)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+        ## set model
+        hmmmodel = HMMModel()
+        hmmmodel.setPath(directory)
+        hmmmodel.addData(train = data[0,:][:,np.newaxis], test = data[1,:][:,np.newaxis])
+        hmmmodel.setModel(n,'full',10000)
+   
+        sys.stdout = open("%s/tmep.txt"%hmmmodel.OUTPATH,"w")
+
+        ## infer HMM parameters and estimate HMM states
+        hmmmodel.trainHMM()
+        hmmmodel.testHMM()
+    
+        ## do anomaly detection
+        hmmmodel.detectAnomaly(anomaly)
+
+        sys.stdout.close()
+        sys.stdout = sys.__stdout__
+
+        ## drae eresults
+        hmmmodel.drawGraph()
+
 
 
 if __name__=='__main__':
 
     #testYahoo()
-    main()
-    
+    #main()
+    modelSelection()

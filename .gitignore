@@ -87,3 +87,12 @@ ENV/
 
 # Rope project settings
 .ropeproject
+/HMMAnomalyDetection/HMMAnomalyDetection/10_components
+/HMMAnomalyDetection/HMMAnomalyDetection/3_components
+/HMMAnomalyDetection/HMMAnomalyDetection/4_components
+/HMMAnomalyDetection/HMMAnomalyDetection/5_components
+/HMMAnomalyDetection/HMMAnomalyDetection/6_components
+/HMMAnomalyDetection/HMMAnomalyDetection/7_components
+/HMMAnomalyDetection/HMMAnomalyDetection/8_components
+/HMMAnomalyDetection/HMMAnomalyDetection/9_components
+/HMMAnomalyDetection/HMMAnomalyDetection/data
