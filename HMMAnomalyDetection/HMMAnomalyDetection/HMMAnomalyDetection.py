@@ -286,6 +286,35 @@ def main():
     hmmmodel.drawGraph()
 
 
+def main2D():
+    ## load data and anomalies
+    data = np.loadtxt('data/data2.csv', delimiter=',')
+    anomaly = np.loadtxt('data/anomaly.csv', delimiter=',')
+    
+    ## set model
+    hmmmodel = HMMModel()
+    hmmmodel.addData(train = data[[0,1],:].T, test = data[[2,3],:].T)
+    hmmmodel.setModel(5,'full',10000)
+    hmmmodel.setPath('2Dtest')
+
+    sys.stdout = open("%s/log.txt"%hmmmodel.OUTPATH,"w")
+
+    ## infer HMM parameters and estimate HMM states
+    hmmmodel.trainHMM()
+    hmmmodel.testHMM()
+    
+    ## do anomaly detection
+    hmmmodel.detectAnomaly(anomaly)
+
+    sys.stdout.close()
+    sys.stdout = sys.__stdout__
+
+    ## drae eresults
+    hmmmodel.drawGraph()
+
+
+
+
 
 def modelSelection():
     ## load data and anomalies
@@ -320,10 +349,43 @@ def modelSelection():
         ## drae eresults
         hmmmodel.drawGraph()
 
+def modelSelection2D():
+    ## load data and anomalies
+    data = np.loadtxt('data/data2.csv', delimiter=',')
+    anomaly = np.loadtxt('data/anomaly.csv', delimiter=',')
 
+    ns = [3,4,5,6,7,8,9,10]    
+    
+    for n in ns:
+        directory = '%s_components'%(n)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+        ## set model
+        hmmmodel = HMMModel()
+        hmmmodel.setPath(directory)
+        hmmmodel.addData(train = data[[0,1],:].T, test = data[[2,3],:].T)
+        hmmmodel.setModel(n,'full',10000)
+   
+        sys.stdout = open("%s/tmep.txt"%hmmmodel.OUTPATH,"w")
+
+        ## infer HMM parameters and estimate HMM states
+        hmmmodel.trainHMM()
+        hmmmodel.testHMM()
+    
+        ## do anomaly detection
+        hmmmodel.detectAnomaly(anomaly)
+
+        sys.stdout.close()
+        sys.stdout = sys.__stdout__
+
+        ## drae eresults
+        hmmmodel.drawGraph()
 
 if __name__=='__main__':
 
     #testYahoo()
     #main()
-    modelSelection()
+    #modelSelection()
+    #main2D()
+    modelSelection2D()
