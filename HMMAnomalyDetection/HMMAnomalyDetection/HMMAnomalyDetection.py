@@ -19,12 +19,28 @@ from hmmlearn.hmm import GaussianHMM
 import sys, os
 from sklearn.cluster import KMeans
 
+def kmeans(X, n_components):
+    # do K-means estimate
+    est = KMeans(n_components)
+    est.fit(X)
+    res = est.labels_
+
+    # calculate each cluster's mean and covariance
+    init_means = []
+    init_covs = []
+    for k in np.unique(res):
+        init_means.append( np.mean(X[res==0], axis=0) )
+        init_covs.append( np.cov(X[res==0].T) )
+
+    return np.array(init_means), np.array(init_covs)
+
 
 class HMMModel:
     def __init__(self):
         self.train = []
         self.test = []
         self.true_anomaly = []
+        self.ifInit = False
 
     def setPath(self, path):
         self.OUTPATH = '%s'%path
@@ -36,9 +52,25 @@ class HMMModel:
         if not test==[]:
             self.test = test
 
+    def setInitState(self, n_components=4):
+        self.n_components = n_components
+        self.init_means, self.init_covs = kmeans(self.train, n_components)
+        self.ifInit = True
+
     def setModel(self, n_components=4, covariance_type='full', n_iter=1000):
+        # call error if n_components if different when of k-means
+        if self.ifInit:
+            if self.n_components != n_components:
+                self.n_components = n_components
+                self.ifInit = False
+        else:
+            self.n_components = n_components
+        
         # Make an HMM instance and execute fit
-        self.model = GaussianHMM(n_components=n_components, covariance_type=covariance_type, n_iter=n_iter)
+        if self.ifInit:
+            self.model = GaussianHMM(n_components=n_components, covariance_type=covariance_type, n_iter=n_iter, means_prior=self.init_means, covars_prior=self.init_covs)
+        else:
+            self.model = GaussianHMM(n_components=n_components, covariance_type=covariance_type, n_iter=n_iter)
 
     def trainHMM(self):
         # Run Gaussian HMM
@@ -170,17 +202,25 @@ def main():
 
 def main2D():
     ## load data and anomalies
-    data = np.loadtxt('data/data2.csv', delimiter=',')
+    data = np.loadtxt('data/dataD3.csv', delimiter=',')
     anomaly = np.loadtxt('data/anomaly.csv', delimiter=',')
-    
+
+    n_components = 5
+
     ## set model
     hmmmodel = HMMModel()
-    hmmmodel.addData(train = data[[0,1],:].T, test = data[[2,3],:].T)
-    hmmmodel.setModel(5,'full',10000)
     hmmmodel.setPath('2Dtest')
+    # add data
+    hmmmodel.addData(train = data[[0,1],:].T, test = data[[2,3],:].T)
+    # initilize with k-means
+    hmmmodel.setInitState(n_components)
+    # create hmm estimator
+    hmmmodel.setModel(n_components,'full',10000)
+    
 
     sys.stdout = open("%s/log.txt"%hmmmodel.OUTPATH,"w")
-
+    print('k-means: measn', hmmmodel.init_means)
+    print('k-means: covs', hmmmodel.init_covs)
     ## infer HMM parameters and estimate HMM states
     hmmmodel.trainHMM()
     hmmmodel.testHMM()
@@ -217,7 +257,6 @@ def modelSelection():
         hmmmodel.setModel(n,'full',10000)
    
         sys.stdout = open("%s/tmep.txt"%hmmmodel.OUTPATH,"w")
-
         ## infer HMM parameters and estimate HMM states
         hmmmodel.trainHMM()
         hmmmodel.testHMM()
@@ -247,10 +286,12 @@ def modelSelection2D():
         hmmmodel = HMMModel()
         hmmmodel.setPath(directory)
         hmmmodel.addData(train = data[[0,1],:].T, test = data[[2,3],:].T)
+        hmmmodel.setInitState(n)
         hmmmodel.setModel(n,'full',10000)
    
         sys.stdout = open("%s/tmep.txt"%hmmmodel.OUTPATH,"w")
-
+        print('k-means: measn', hmmmodel.init_means)
+        print('k-means: covs', hmmmodel.init_covs)
         ## infer HMM parameters and estimate HMM states
         hmmmodel.trainHMM()
         hmmmodel.testHMM()
